@@ -24,7 +24,7 @@ private:
         current_sum = (current_sum * 10) + node->val;
         
         if (!node->left && !node->right) {
-            final_sum += current_sum;
+            final_sum += current_sum; // Mutating shared state
             return; 
         }
         
@@ -47,14 +47,13 @@ The Pure Function Pattern: Returning the integer back up the tree (return dfs(le
 branch and right branch can be processed on completely separate threads or distributed servers without any locking mechanisms.
 
 ```cpp
-void dfs(TreeNode* node, int current_sum, int& final_sum) {
-    if (!node) return;
+int dfs(TreeNode* node, int current_sum) {
+    if (!node) return 0;
     current_sum = (current_sum * 10) + node->val;
     
     if (!node->left && !node->right) {
-        final_sum += current_sum; // Mutating shared state
-        return; 
+        return current_sum; // Returning isolated state
     }
-    dfs(node->left, current_sum, final_sum);
-    dfs(node->right, current_sum, final_sum);
+    return dfs(node->left, current_sum) + dfs(node->right, current_sum);
 }
+```
