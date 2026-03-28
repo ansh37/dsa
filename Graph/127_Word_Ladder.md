@@ -107,3 +107,55 @@ What if the word dictionary is 500GB of DNA sequences, and a single machine cann
    To validate a mutation, we hash the string and query the specific shard.
 2. Distributed BFS (Pregel / Apache Giraph): A single while loop won't scale. We adopt a Bulk Synchronous Parallel (BSP) model. A Master node holds the current frontier, chunks it, and delegates the mutation/validation work to hundreds of Worker nodes. The workers return valid next-step sequences to the Master to build the next frontier level.
 3. Memory Compression: Storing genetic sequences as raw strings wastes network bandwidth. Since DNA is only 4 characters (A, C, G, T), each character can be encoded as 2 bits. A 32-character sequence perfectly packs into a single 64-bit integer, reducing payload size by ~80%.
+
+```mermaid
+flowchart TD
+    %% Node Styling Definitions
+    classDef master fill:#2b2d42,stroke:#edf2f4,stroke-width:2px,color:#fff;
+    classDef worker fill:#8d99ae,stroke:#2b2d42,stroke-width:2px,color:#fff;
+    classDef redis fill:#ef233c,stroke:#2b2d42,stroke-width:2px,color:#fff;
+    classDef network fill:#edf2f4,stroke:#8d99ae,stroke-width:2px,stroke-dasharray: 5 5,color:#2b2d42;
+
+    %% Master Node
+    M["👑 Master Node (BSP Orchestrator)<br/>Holds Current Level 'Frontier'"]:::master
+
+    %% Worker Nodes (Compute)
+    subgraph Compute_Cluster ["Parallel Compute Layer (Stateless Workers)"]
+        direction LR
+        W1("⚙️ Worker 1"):::worker
+        W2("⚙️ Worker 2"):::worker
+        W3("⚙️ Worker N"):::worker
+    end
+
+    %% Network / Compression Layer
+    subgraph Network_Boundary ["Network Edge (Compression & Routing)"]
+        C["🗜️ Bitmask Compression<br/>(32-char DNA ➡️ 64-bit Integer)<br/>&<br/>Hash Router (CRC32 % 1024)"]:::network
+    end
+
+    %% Distributed Cache
+    subgraph Storage_Cluster ["Distributed Redis Cluster (500GB Sharded Dict)"]
+        direction LR
+        R0[("🛢️ Shard 0")]:::redis
+        R1[("🛢️ Shard 1")]:::redis
+        R_N[("🛢️ Shard 1023")]:::redis
+    end
+
+    %% Flow Mechanics
+    M == "1. Distributes chunks of<br/>frontier words" ===> Compute_Cluster
+    
+    W1 -->|"2. Mutates &<br/>Sends to Edge"| C
+    W2 --> C
+    W3 --> C
+    
+    C -. "3. O(1) Lookup<br/>(Tiny 8-byte payload)" .-> R0
+    C -. "3. O(1) Lookup<br/>(Tiny 8-byte payload)" .-> R1
+    C -. "3. O(1) Lookup<br/>(Tiny 8-byte payload)" .-> R_N
+
+    R0 -. "4. Returns Valid/Invalid" .-> C
+    R1 -.-> C
+    R_N -.-> C
+
+    C ==>|"5. Decompresses &<br/>Returns Valid Next-Steps"| Compute_Cluster
+    
+    Compute_Cluster == "6. Aggregates new<br/>frontier level" ===> M
+```
