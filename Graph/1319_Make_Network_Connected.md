@@ -89,9 +89,12 @@ public:
 
 This algorithm models how massive distributed systems handle Network Partitions (The 'P' in the CAP Theorem).
 
-1. Kubernetes & Cassandra (Cluster Healing)
 
-  In a 10,000-node server cluster, a faulty top-of-rack switch can instantly sever the network, creating two isolated "islands" of servers that cannot talk to each other. This is called a Split-Brain scenario.
+1. Distributed System Health: In Kubernetes or Cassandra rings, nodes use Gossip Protocols to share connection states. DSU allows the master control plane to instantly calculate if the cluster has experienced a "Network Partition" (split-brain) in $O(1)$ time without traversing the entire routing table.
+   
+2. BGP Loop Prevention: Internet backbone routers use cycle detection to drop redundant connection advertisements, preventing infinite routing loops across autonomous systems.
+
+3. Kubernetes & Cassandra (Cluster Healing): In a 10,000-node server cluster, a faulty top-of-rack switch can instantly sever the network, creating two isolated "islands" of servers that cannot talk to each other. This is called a Split-Brain scenario.
 The master control plane (using a protocol like Raft or Paxos) must constantly monitor cluster connectivity. DSU allows the control plane to rapidly determine exactly how many isolated clusters exist, and automatically route commands to secondary network interfaces (simulating moving a cable) to bridge the air-gapped clusters back into a single unified system.
 
 ```mermaid
