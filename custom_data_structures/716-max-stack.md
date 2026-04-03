@@ -45,6 +45,74 @@ This is the approach most candidates attempt when they realize Two Stacks won't 
 
 **The Verdict:** This is an acceptable L4 (Mid-level) answer, but it is deeply flawed in production. Because deletion is "lazy," zombie nodes pile up in memory. If you push 10,000 items and call `pop()` 9,999 times, your Heap still holds 10,000 items, wasting massive amounts of RAM.
 
+```cpp
+#include<iostream>
+#include<vector>
+#include<unordered_set>
+#include<stack>
+#include<queue>
+
+using namespace std;
+
+class MaxStack {
+private:
+  stack<pair<int, uint64_t>> main_st;
+  priority_queue<pair<int, uint64_t>, vector<pair<int, uint64_t>>> max_st;
+  unordered_set<uint64_t> removed; 
+  uint64_t uuid = 0;
+
+public:
+  void push(int value) {
+    main_st.push({value, uuid});
+    max_st.push({value, uuid});
+    uuid++;
+  }
+
+  int peek() {
+    while (!main_st.empty() && removed.find(main_st.top().second)!= removed.end()) {
+      removed.erase(main_st.top().second);
+      main_st.pop();
+    }
+
+    if (main_st.empty()) return -1;
+    return main_st.top().first;
+  }
+
+  int peekMax() {
+    while (!max_st.empty() && removed.find(max_st.top().second)!= removed.end()) {
+      removed.erase(max_st.top().second);
+      max_st.pop();
+    }
+
+    if(max_st.empty()) return -1;
+    return max_st.top().first;
+  }
+
+  int pop() {
+    if(main_st.empty()) return -1;
+
+    int value = peek();
+    if (value == -1) return -1;
+
+    removed.insert(main_st.top().second);
+    main_st.pop();
+
+    return value;
+  }
+
+  int popMax() {
+    if(max_st.empty()) return -1;
+
+    int maxValue = peekMax();
+    if (maxValue == -1) return -1;
+
+    removed.insert(max_st.top().second); 
+    max_st.pop();
+
+    return maxValue;
+  }
+};
+```
 
 ## 3. The Optimal Architecture: Ordered Map + DLL
 This is the approach we implemented. Instead of relying on lazy cleanup, we physically connect the chronological order (the Stack) to the sorted order (the Map) using memory pointers. 
