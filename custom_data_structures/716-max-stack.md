@@ -214,6 +214,17 @@ public:
     }
 };
 ```
+## Time and Space Complexity
+
+| Operation | Priority Queue + Stack (Lazy Deletion) | DLL + Ordered Map (Deterministic) |
+| :--- | :--- | :--- |
+| **`push()`** | $O(\log N)$ (Heap push) | $O(\log N)$ (Map insert) |
+| **`peek()`** | **Amortized** $O(1)$ (Stack top + lazy cleanup) | **Strict** $O(1)$ (DLL tail pointer) |
+| **`peekMax()`** | **Amortized** $O(1)$ (Heap top + lazy cleanup) | **Strict** $O(1)$ (Map `rbegin()`) |
+| **`pop()`** | **Amortized** $O(\log N)$ (Stack pop + deferred cost) | **Strict** $O(\log N)$ (DLL remove + Map erase) |
+| **`popMax()`** | **Amortized** $O(\log N)$ (Heap pop + deferred cost) | **Strict** $O(\log N)$ (DLL remove + Map erase) |
+| **Space** | $O(N)$ (Bounded by `removed` set optimization) | $O(N)$ (Exact node pointers) |
+
 ```mermaid
 graph TD
     Map["Ordered Map (BST)<br/>Keys = Values<br/>Values = Node Pointers"] -->|Points to| Node2
@@ -226,8 +237,28 @@ graph TD
     end
 ```
 
-* Optimal Time Complexity: $O(\log N)$ for `push`, `pop`, and `popMax`. $O(1)$ for `top` and `peekMax`.
-* Optimal Space Complexity: $O(N)$
 
 ### System Design / Real-Life Impact
-**Caching Infrastructures:** This is identical to the underlying architecture of an LRU (Least Recently Used) or LFU (Least Frequently Used) Cache. Relying on raw pointers bridges the gap between disparate data structures, allowing high-performance storage engines (like Redis or Memcached) to handle complex eviction policies in near constant time.
+1. High-Frequency Trading (HFT):
+
+The Limit Order BookThis is the ultimate system design context for Fintech/HFT roles. An exchange (like NASDAQ or Binance) maintains an "Order Book" of millions of Buy and Sell requests.
+
+ - The Problem: The matching engine must process orders based on two strict rules: Price Priority (highest buy offer wins) and Time Priority (if prices tie, the oldest offer wins). Furthermore, traders frequently cancel orders, which must happen instantly.
+ - The MaxStack Parallel: * The Ordered Map tracks the prices (finding the peekMax() highest bid in $O(1)$).The Doubly Linked List tracks the exact chronological sequence of the orders.If a trader hits "Cancel Order", the system looks up their specific Node pointer and snips it out of the DLL in strict $O(1)$ time, bypassing the need to search the entire book. It is purely deterministic, ensuring the trading engine never experiences a latency spike.
+
+2. Distributed Caching (LRU / LFU Cache)
+
+Memcached and Redis rely heavily on this exact pattern.
+
+ - The Problem: A server cache only has 16GB of RAM. When it gets full, it needs to evict data.
+ - LRU (Least Recently Used): Uses a Hash Map (for $O(1)$ lookups) and a DLL (to track time). When an item is read, it is snipped from the middle of the DLL and moved to the front. The item at the tail is the oldest.
+ - LFU (Least Frequently Used): Uses the exact MaxStack logic, but instead of tracking "Max Value," the Map tracks "Frequency of access." When the cache is full, it looks at the Map to find the lowest frequency, grabs the pointer, and snips it from the DLL in $O(1)$.
+
+3. Priority Task Scheduling with "Abort" (AWS SQS / Celery)
+
+Imagine you are building a backend for a massive AI image generation service (like Midjourney). Millions of requests are queued up.
+
+- The Problem: Free users wait in a standard chronological queue. Paid VIP users get to jump to the front of the line (Priority). But what if a user closes their app or hits "Cancel"? The system must aggressively scrub their task from the queue so the GPU doesn't waste 30 seconds rendering a canceled image.
+- The MaxStack Parallel:
+  - The chronological queue is the DLL.
+  - The VIP priority queue is the Ordered Map (popMax()).The cancellation feature uses the Map to find the job ID, grabs the pointer, and cleanly removes it from the DLL in constant time without needing to scan the entire queue of millions of jobs.
