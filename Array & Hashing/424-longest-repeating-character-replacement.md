@@ -32,7 +32,7 @@ graph TD
    - Uses an if statement to shift the window. maxFreq is never decremented, acting as a high-water mark. Pure $O(N)$ execution.
 ## Code
 
-```
+```cpp
 #include <string>
 #include <vector>
 #include <algorithm>
