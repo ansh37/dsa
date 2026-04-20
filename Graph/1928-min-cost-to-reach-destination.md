@@ -26,6 +26,10 @@ graph TD
         Check -->|No| Keep["Keep State & Update minTime[Node] = CurrentTime<br/>(This path costs more, but saves time!)"]
     end
 ```
+
+### How State-Space Dijkstra Differs from Standard Dijkstra:
+In standard Dijkstra, the state is simply the `node` . If you find a path to a node that is more expensive than a previously found path, you immediately discard it because it cannot possibly lead to an optimal overall answer. In State-Space Dijkstra, the state expands to `(node, time)` . You cannot blindly discard a more expensive path! What if the more expensive path is significantly faster? That faster path might be the only way to reach the final destination before the maxTime deadline. Therefore, you must explore paths that are more expensive if and only if they arrive faster than the cheaper paths you've seen so far.
+
 ## Approaches
 | Approach | Time Complexity | Space Complexity | Why it fails/succeeds |
 | :--- | :--- | :--- | :--- |
