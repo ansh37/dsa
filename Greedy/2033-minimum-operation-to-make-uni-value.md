@@ -89,7 +89,7 @@ public:
 ```
 
 ## Complexity Analysis
-- Time Complexity: $O(M \times N)$We iterate through the $M \times N$ grid exactly once to populate the frequency array.The two-pointer squeeze bounded by the maximum possible quotient runs in linear time relative to the range of values, making the entire algorithm effectively $O(N)$.
+- Time Complexity: $O(M \times N)$ We iterate through the $M \times N$ grid exactly once to populate the frequency array.The two-pointer squeeze bounded by the maximum possible quotient runs in linear time relative to the range of values, making the entire algorithm effectively $O(N)$.
 - Space Complexity: $O(1)$ Extra SpaceWe only allocate a fixed-size array freq[10001] regardless of the input grid size. This is a massive optimization over flattening the grid into an $O(M \times N)$ dynamic vector.
 
 ## Real World Use Cases
